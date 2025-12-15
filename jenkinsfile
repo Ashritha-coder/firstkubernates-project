@@ -1,15 +1,15 @@
 pipeline {
   agent any
 
-  tools {
-    maven 'MAVEN_3.9.6'
-  }
-
+ tools {
+    maven 'maven-3.9.6'
+}
   environment {
     DOCKER_IMAGE = "dockerhub_username/bankapp"
   }
 
   stages {
+
     stage('Checkout') {
       steps {
         git branch: 'main',
@@ -19,13 +19,17 @@ pipeline {
 
     stage('Build JAR') {
       steps {
-        sh 'mvn clean package'
+        dir('Blue-Green-Deployment') {
+          sh 'mvn clean package'
+        }
       }
     }
 
     stage('Build Docker Image') {
       steps {
-        sh 'docker build -t $DOCKER_IMAGE:blue .'
+        dir('Blue-Green-Deployment') {
+          sh 'docker build -t $DOCKER_IMAGE:blue .'
+        }
       }
     }
 
@@ -37,12 +41,13 @@ pipeline {
 
     stage('Deploy to Kubernetes') {
       steps {
-        sh '''
-        kubectl apply -f app-deployment-blue.yml
-        kubectl apply -f bankapp-service.yml
-        '''
+        dir('Blue-Green-Deployment') {
+          sh '''
+            kubectl apply -f app-deployment-blue.yml
+            kubectl apply -f bankapp-service.yml
+          '''
+        }
       }
     }
   }
 }
-

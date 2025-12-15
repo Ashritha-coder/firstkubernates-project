@@ -2,73 +2,41 @@ pipeline {
   agent any
 
   environment {
-    // Path to kubectl/minikube if needed; adjust if binaries are in nonstandard locations
-    KUBECONFIG = "${env.HOME}/.kube/config"
-    IMAGE_NAME = "bankapp:latest"
-    K8S_MANIFEST_DIR = "k8s"
-    // If you use DockerHub alternative, set DOCKERHUB_CRED (username / password token) in Jenkins credentials
+    DOCKER_IMAGE = "dockerhub_username/bankapp"
   }
 
   stages {
     stage('Checkout') {
       steps {
-        checkout scm
+        git 'https://github.com/your-username/blue-green-deployment.git'
       }
     }
 
-    stage('Build (Maven)') {
+    stage('Build JAR') {
       steps {
-        sh './mvnw -B -DskipTests=false package'    // or 'mvn -B package' if mvnw not present
+        sh 'mvn clean package'
       }
     }
 
     stage('Build Docker Image') {
       steps {
-        // Build using local docker daemon
-        sh "docker build -t ${IMAGE_NAME} ."
+        sh 'docker build -t $DOCKER_IMAGE:blue .'
       }
     }
 
-    stage('Load image into Minikube / Local cluster') {
+    stage('Push Docker Image') {
       steps {
-        // Option A: If using minikube, use minikube image load
-        // Option B: If not using minikube but local docker is the k8s runtime, skip load step
-        script {
-          // try minikube load, if available
-          def rc = sh(returnStatus: true, script: "which minikube || true")
-          if (rc == 0) {
-            // load image into minikube
-            sh "minikube image load ${IMAGE_NAME} || docker save ${IMAGE_NAME} | (kubectl --namespace default create -f - 2>/dev/null || true)"
-          } else {
-            echo "minikube not found. Assuming cluster can pull local docker images."
-          }
-        }
+        sh 'docker push $DOCKER_IMAGE:blue'
       }
     }
 
     stage('Deploy to Kubernetes') {
       steps {
-        // Apply manifests from k8s/ directory
-        sh "kubectl apply -f ${K8S_MANIFEST_DIR}/deployment.yaml"
-        sh "kubectl apply -f ${K8S_MANIFEST_DIR}/service.yaml"
+        sh '''
+        kubectl apply -f app-deployment-blue.yml
+        kubectl apply -f bankapp-service.yml
+        '''
       }
-    }
-
-    stage('Verify') {
-      steps {
-        sh "kubectl get pods -l app=bankapp -o wide || true"
-        sh "kubectl get svc bankapp-service || true"
-      }
-    }
-  }
-
-  post {
-    success {
-      echo "Deployment finished successfully."
-    }
-    failure {
-      echo "Something failed during the pipeline."
     }
   }
 }
-

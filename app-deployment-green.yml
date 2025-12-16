@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: bankapp
-        image: dockerhub_username/bankapp:green
+        image: ashrithakp/mysun:latest
         ports:
         - containerPort: 8080

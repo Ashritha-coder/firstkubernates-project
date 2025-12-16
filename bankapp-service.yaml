@@ -6,9 +6,10 @@ spec:
   type: NodePort
   selector:
     app: bankapp
-    version: blue   # switch to green when needed
+    version: blue   # change to green when needed
   ports:
     - port: 80
       targetPort: 8080
       nodePort: 30007
+
 

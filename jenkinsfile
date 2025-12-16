@@ -18,20 +18,20 @@ pipeline {
       }
     }
 
-    stage('Deploy to Kubernetes') {
-      steps {
-        dir('Blue-Green-Deployment') {
-          sh '''
-            if [ "$DEPLOY_COLOR" = "blue" ]; then
-              kubectl apply -f app-deployment-blue.yml
-            else
-              kubectl apply -f app-deployment-green.yml
-            fi
+  stage('Deploy to Kubernetes') {
+  steps {
+    sh '''
+      echo "Deploying color: $DEPLOY_COLOR"
 
-            kubectl apply -f bankapp-service.yml
-          '''
-        }
-      }
-    }
+      if [ "$DEPLOY_COLOR" = "blue" ]; then
+        kubectl apply -f app-deployment-blue.yml
+      else
+        kubectl apply -f app-deployment-green.yml
+      fi
+
+      kubectl apply -f bankapp-service.yml
+    '''
   }
+}
+}
 }

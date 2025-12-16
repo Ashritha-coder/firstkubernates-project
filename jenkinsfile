@@ -1,11 +1,12 @@
 pipeline {
   agent any
 
- tools {
-    maven 'MAVEN_3.9.6'
-}
-  environment {
-    DOCKER_IMAGE = "dockerhub_username/bankapp"
+  parameters {
+    choice(
+      name: 'DEPLOY_COLOR',
+      choices: ['blue', 'green'],
+      description: 'Choose which version to deploy'
+    )
   }
 
   stages {
@@ -17,33 +18,16 @@ pipeline {
       }
     }
 
-    stage('Build JAR') {
-      steps {
-        dir('Blue-Green-Deployment') {
-          sh 'mvn clean package'
-        }
-      }
-    }
-
-    stage('Build Docker Image') {
-      steps {
-        dir('Blue-Green-Deployment') {
-          sh 'docker build -t $DOCKER_IMAGE:blue .'
-        }
-      }
-    }
-
-    stage('Push Docker Image') {
-      steps {
-        sh 'docker push $DOCKER_IMAGE:blue'
-      }
-    }
-
     stage('Deploy to Kubernetes') {
       steps {
         dir('Blue-Green-Deployment') {
           sh '''
-            kubectl apply -f app-deployment-blue.yml
+            if [ "$DEPLOY_COLOR" = "blue" ]; then
+              kubectl apply -f app-deployment-blue.yml
+            else
+              kubectl apply -f app-deployment-green.yml
+            fi
+
             kubectl apply -f bankapp-service.yml
           '''
         }

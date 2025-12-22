@@ -7,6 +7,9 @@ spec:
   selector:
     app: bankapp
     version: blue   # change to green when needed
+  selector:
+    app: bankapp
+    version: green
   ports:
     - port: 80
       targetPort: 8080
